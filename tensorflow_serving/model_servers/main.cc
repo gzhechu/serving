@@ -45,9 +45,11 @@ limitations under the License.
 
 #include <iostream>
 #include <vector>
+#include <unistd.h>
 
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/util/command_line_flags.h"
 #include "tensorflow_serving/model_servers/server.h"
@@ -56,6 +58,7 @@ limitations under the License.
 int main(int argc, char** argv) {
   tensorflow::serving::main::Server::Options options;
   bool display_version = false;
+  bool load_config_gracefully = false;
   std::vector<tensorflow::Flag> flag_list = {
       tensorflow::Flag("port", &options.grpc_port,
                        "Port to listen on for gRPC API"),
@@ -167,6 +170,9 @@ int main(int argc, char** argv) {
                        "initializations (such as TF optimizations) at load "
                        "time, to reduce first request latency."),
       tensorflow::Flag("version", &display_version, "Display version"),
+      tensorflow::Flag("load_config_gracefully", &load_config_gracefully,
+          "Load models from config file gracefully, "
+          "use relative path in config file."),
       tensorflow::Flag(
           "monitoring_config_file", &options.monitoring_config_file,
           "If non-empty, read an ascii MonitoringConfig protobuf from "
@@ -179,7 +185,7 @@ int main(int argc, char** argv) {
   }
 
   if (display_version) {
-    std::cout << "TensorFlow ModelServer: " << TF_Serving_Version() << "\n"
+    std::cout << "TensorFlow ModelServer (YY-YSFN): " << TF_Serving_Version() << "\n"
               << "TensorFlow Library: " << TF_Version() << "\n";
     return 0;
   }
@@ -187,6 +193,17 @@ int main(int argc, char** argv) {
   tensorflow::port::InitMain(argv[0], &argc, &argv);
   if (argc != 1) {
     std::cout << "unknown argument: " << argv[1] << "\n" << usage;
+  }
+
+  if (load_config_gracefully) {
+    char buf[2048] = {};
+    ssize_t len = readlink("/proc/self/exe", buf, 2047);
+    buf[len]='\0';
+    const tensorflow::string current_path(tensorflow::io::Dirname(buf));
+    std::cout << "The path to bin file: " << current_path << std::endl;
+
+    options.model_config_file = tensorflow::io::JoinPath(current_path, "../conf/models.config");
+    options.model_config_list_root_dir = current_path;
   }
 
   tensorflow::serving::main::Server server;

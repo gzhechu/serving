@@ -61,6 +61,7 @@ class Server {
     bool flush_filesystem_caches = true;
     tensorflow::string model_base_path;
     tensorflow::string saved_model_tags;
+    tensorflow::string model_config_list_root_dir;
     // Tensorflow session parallelism of zero means that both inter and intra op
     // thread pools will be auto configured.
     tensorflow::int64 tensorflow_session_parallelism = 0;

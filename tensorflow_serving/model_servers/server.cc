@@ -276,6 +276,9 @@ Status Server::BuildAndStart(const Options& server_options) {
       server_options.file_system_poll_wait_seconds;
   options.flush_filesystem_caches = server_options.flush_filesystem_caches;
 
+  if (!server_options.model_config_list_root_dir.empty())
+    options.model_config_list_root_dir = server_options.model_config_list_root_dir;
+
   TF_RETURN_IF_ERROR(ServerCore::Create(std::move(options), &server_core_));
 
   // 0.0.0.0" is the way to listen on localhost in gRPC.
